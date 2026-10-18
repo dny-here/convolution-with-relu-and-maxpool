@@ -137,31 +137,29 @@ Dengan `SHIFT = 0` hanya terjadi ReLU dan saturasi. Pada data uji (`golden_custo
 | `max_neg` | Semua piksel 255, kernel −128 (ReLU menghasilkan 0) |
 | `checker` | Pola papan catur 0/255 dengan kernel bertanda campuran |
 
-### Cara menjalankan
-
-Pengujian umum:
-
+### Cara menjalankan (Makefile)
+ 
+Kebutuhan: Icarus Verilog (`iverilog`, `vvp`) dan Python 3. GTKWave opsional untuk melihat waveform.
+ 
+| Perintah | Fungsi |
+|---|---|
+| `make help` | Menampilkan daftar target |
+| `make lint` | Mengompilasi RTL saja dengan peringatan |
+| `make run` | Menjalankan `tb_top` terhadap `golden.py` (opsi: `MODE`, `SEED`, `SHIFT`) |
+| `make custom` | Membuat ulang `tb_custom.v` dari `golden_custom.py`, lalu menjalankannya |
+| `make regress` | Seluruh mode × `SHIFT` 0, 6, 9 × 2 seed, ditambah data tugas; menampilkan `REGRESSION PASSED` bila semua lolos |
+| `make wave` / `make wave-custom` | Membuka waveform terakhir di GTKWave |
+| `make clean` | Menghapus folder `build/` |
+ 
+Contoh:
+ 
 ```bash
-python3 golden.py mid 2 8            # mode, seed, SHIFT
-iverilog -g2012 -P tb_top.SHIFT=8 -o sim tb_top.v \
-    shift_reg.v relu_sat.v signed_mult.v mac9.v window_frontend.v conv_ctrl.v \
-    pool_ctrl.v pool_relu_ch.v kernel_loader.v controller.v conv_pool_relu_top.v
-vvp sim
+make run MODE=mid SEED=2 SHIFT=8
+make custom
+make regress
 ```
-
-Nilai `SHIFT` pada `golden.py` dan pada `-P tb_top.SHIFT` harus sama.
-
-Pengujian dengan data dari tugas:
-
-```bash
-python3 golden_custom.py
-iverilog -g2012 -o sim_custom tb_custom.v \
-    shift_reg.v relu_sat.v signed_mult.v mac9.v window_frontend.v conv_ctrl.v \
-    pool_ctrl.v pool_relu_ch.v kernel_loader.v controller.v conv_pool_relu_top.v
-vvp sim_custom
-```
-
-Waveform disimpan pada `tb_top.vcd` dan `tb_custom.vcd`.
+ 
+`SHIFT` diteruskan ke golden model dan ke simulasi sekaligus, sehingga keduanya selalu sama. Untuk data tugas, `SHIFT` diatur langsung di bagian atas `src/testbench/golden_custom.py`.
 
 ### Hasil simulasi
 
