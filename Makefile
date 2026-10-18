@@ -3,7 +3,8 @@
 #  Simulator : Icarus Verilog (iverilog / vvp), golden model: Python 3
 #
 #  src/rtl        RTL modules
-#  src/testbench  testbenches + golden models
+#  src/testbench  testbenches
+#  src/golden_model  Python golden models
 #  build/         generated files (sim binaries, .hex, .vcd, logs)
 #
 #  make help      show all targets
@@ -11,6 +12,7 @@
 
 RTL_DIR := src/rtl
 TB_DIR  := src/testbench
+GM_DIR  := src/golden_model
 BUILD   := build
 
 IVERILOG ?= iverilog
@@ -53,7 +55,7 @@ $(BUILD):
 # SHIFT is a compile-time parameter, so the sim is rebuilt on every `make run`
 run: | $(BUILD)
 	$(IVERILOG) $(IVFLAGS) -P tb_top.SHIFT=$(SHIFT) -o $(SIM_TOP) $(TB_DIR)/tb_top.v $(RTL_SRCS)
-	cd $(BUILD) && $(PYTHON) ../$(TB_DIR)/golden.py $(MODE) $(SEED) $(SHIFT) | tail -n 1
+	cd $(BUILD) && $(PYTHON) ../$(GM_DIR)/golden.py $(MODE) $(SEED) $(SHIFT) | tail -n 1
 	cd $(BUILD) && $(VVP) sim_top | grep -E "PASS|FAIL|MISMATCH|ERROR|TIMEOUT"
 
 # ---------------------------------------------------------------------
@@ -61,7 +63,7 @@ run: | $(BUILD)
 #  golden_custom.py regenerates src/testbench/tb_custom.v
 # ---------------------------------------------------------------------
 custom: | $(BUILD)
-	$(PYTHON) $(TB_DIR)/golden_custom.py $(TB_DIR)/tb_custom.v > $(BUILD)/golden_custom_output.txt
+	$(PYTHON) $(GM_DIR)/golden_custom.py $(TB_DIR)/tb_custom.v > $(BUILD)/golden_custom_output.txt
 	$(IVERILOG) $(IVFLAGS) -o $(SIM_CUSTOM) $(TB_DIR)/tb_custom.v $(RTL_SRCS)
 	cd $(BUILD) && $(VVP) sim_custom | grep -v "VCD info"
 
@@ -74,14 +76,14 @@ regress: | $(BUILD)
 	  $(IVERILOG) $(IVFLAGS) -P tb_top.SHIFT=$$sh -o $(SIM_TOP) $(TB_DIR)/tb_top.v $(RTL_SRCS) || exit 1; \
 	  for m in random mid zeros max_pos max_neg checker; do \
 	    for s in 1 2; do \
-	      (cd $(BUILD) && $(PYTHON) ../$(TB_DIR)/golden.py $$m $$s $$sh >/dev/null); \
+	      (cd $(BUILD) && $(PYTHON) ../$(GM_DIR)/golden.py $$m $$s $$sh >/dev/null); \
 	      r=$$(cd $(BUILD) && $(VVP) sim_top | grep -E "PASS|FAIL" | head -n 1); \
 	      printf "SHIFT=%-2s mode=%-8s seed=%s : %s\n" $$sh $$m $$s "$$r"; \
 	      case "$$r" in PASS*) ;; *) fail=1;; esac; \
 	    done; \
 	  done; \
 	done; \
-	$(PYTHON) $(TB_DIR)/golden_custom.py $(TB_DIR)/tb_custom.v > $(BUILD)/golden_custom_output.txt; \
+	$(PYTHON) $(GM_DIR)/golden_custom.py $(TB_DIR)/tb_custom.v > $(BUILD)/golden_custom_output.txt; \
 	$(IVERILOG) $(IVFLAGS) -o $(SIM_CUSTOM) $(TB_DIR)/tb_custom.v $(RTL_SRCS) || exit 1; \
 	r=$$(cd $(BUILD) && $(VVP) sim_custom | grep -E "PASS|FAIL" | head -n 1); \
 	echo "custom task data            : $$r"; \
